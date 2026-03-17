@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma El Faro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-slate-300 p-4 font-sans text-sm">
+    <div class="max-w-md mx-auto space-y-4">
+        <select id="selProfe" onchange="render()" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-2xl outline-none text-white font-bold text-center appearance-none shadow-lg focus:ring-1 focus:ring-indigo-500">
+            <option value="">Cargando cronograma...</option>
+        </select>
+        <div class="flex bg-zinc-900 rounded-2xl p-1 justify-between shadow-inner border border-zinc-800">
+            <button onclick="setDia('Lunes', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold bg-indigo-600 text-white">LUN</button>
+            <button onclick="setDia('Martes', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold">MAR</button>
+            <button onclick="setDia('Miércoles', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold">MIE</button>
+            <button onclick="setDia('Jueves', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold">JUE</button>
+            <button onclick="setDia('Viernes', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold">VIE</button>
+            <button onclick="setDia('Sábado', this)" class="btn-dia flex-1 py-2 rounded-xl text-[10px] font-bold">SAB</button>
+        </div>
+        <div id="lista" class="space-y-2 pb-20"></div>
+    </div>
+    <script>
+        const API = "https://script.google.com/macros/s/AKfycbxg-uMKJ8zm3AQin5c2OM2Fh2LQOu3yJvAdR7IjVjtYBEocjjWBOrAVQwWGM2gVJsIB/exec";
+        let datos = [];
+        let diaAct = "Lunes";
+        async function init() {
+            try {
+                const r = await fetch(API);
+                datos = await r.json();
+                const profes = [...new Set(datos.map(d => d.profe))].filter(p => p && p !== "-").sort();
+                const sel = document.getElementById('selProfe');
+                sel.innerHTML = '<option value="">TODOS LOS PROFESORES</option>';
+                profes.forEach(p => { sel.innerHTML += `<option value="${p}">${p.toUpperCase()}</option>`; });
+                render();
+            } catch (e) { document.getElementById('lista').innerHTML = "Error de conexión"; }
+        }
+        function setDia(d, b) {
+            diaAct = d;
+            document.querySelectorAll('.btn-dia').forEach(x => x.classList.remove('bg-indigo-600', 'text-white'));
+            b.classList.add('bg-indigo-600', 'text-white');
+            render();
+        }
+        function render() {
+            const p = document.getElementById('selProfe').value;
+            const cont = document.getElementById('lista');
+            cont.innerHTML = "";
+            let filtrados = datos.filter(x => x.dia === diaAct && (p === "" || x.profe === p));
+            filtrados.sort((a, b) => a.hora.localeCompare(b.hora, undefined, {numeric: true}));
+            filtrados.forEach(c => {
+                const html = c.disponible ? 
+                    `<div class="flex justify-between items-center px-4 py-1 opacity-20 border-l-2" style="border-color:${c.color}"><span class="text-[9px] font-bold">LIBRE</span><span class="text-xs">${c.hora}</span></div>` :
+                    `<div class="bg-zinc-900 p-4 rounded-r-xl flex justify-between items-center border-l-[6px]" style="border-color:${c.color}"><div><p class="text-[8px] font-bold opacity-70" style="color:${c.color}">${c.profe}</p><h2 class="text-base font-bold text-white uppercase">${c.alumno}</h2></div><div class="text-xl font-black text-indigo-400">${c.hora}</div></div>`;
+                cont.innerHTML += html;
+            });
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
